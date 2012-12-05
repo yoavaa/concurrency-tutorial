@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -32,10 +33,13 @@ public class LockingTest {
     private List<Future<?>> futures = new ArrayList<>();
     private long start;
     private final int nCycles = 1000;
+    private final int readWriteFactor = 10;
 
     private final static Object lock = new Object();
     private final static ReentrantLock reentrantLock = new ReentrantLock();
     private final static ReentrantLock fairReentrantLock = new ReentrantLock(true);
+    private final static ReentrantReadWriteLock fairReadWriteLock = new ReentrantReadWriteLock(true);
+    private final static ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     @Before
     public void start() {
@@ -51,7 +55,7 @@ public class LockingTest {
     public void withoutLocking() {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         for (int i=0; i < nCycles; i++) {
-            if (i % 4 == 0)
+            if (i % readWriteFactor == 0)
                 futures.add(executorService.submit(new Writer()));
             else
                 futures.add(executorService.submit(new Reader()));
@@ -60,13 +64,14 @@ public class LockingTest {
         waitForAllTasksToComplete();
 
         assertThat(missMatches.get(), is(0));
+        assertThat(count1, is(nCycles / readWriteFactor));
     }
 
     @Test
     public void withLocking() {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         for (int i=0; i < nCycles; i++) {
-            if (i % 4 == 0)
+            if (i % readWriteFactor == 0)
                 futures.add(executorService.submit(lockUsingSynchronized(new Writer())));
             else
                 futures.add(executorService.submit(lockUsingSynchronized(new Reader())));
@@ -75,38 +80,72 @@ public class LockingTest {
         waitForAllTasksToComplete();
 
         assertThat(missMatches.get(), is(0));
+        assertThat(count1, is(nCycles / readWriteFactor));
     }
 
     @Test
     public void withReentrantLocking() {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         for (int i=0; i < nCycles; i++) {
-            if (i % 4 == 0)
-                futures.add(executorService.submit(lockUsingReentrantLock(new Writer())));
+            if (i % readWriteFactor == 0)
+                futures.add(executorService.submit(lockUsingReentrantLock(false, new Writer())));
             else
-                futures.add(executorService.submit(lockUsingReentrantLock(new Reader())));
+                futures.add(executorService.submit(lockUsingReentrantLock(false, new Reader())));
         }
 
         waitForAllTasksToComplete();
 
         assertThat(missMatches.get(), is(0));
+        assertThat(count1, is(nCycles / readWriteFactor));
     }
 
     @Test
     public void withFairReentrantLocking() {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         for (int i=0; i < nCycles; i++) {
-            if (i % 4 == 0)
-                futures.add(executorService.submit(lockUsingFairReentrantLock(new Writer())));
+            if (i % readWriteFactor == 0)
+                futures.add(executorService.submit(lockUsingReentrantLock(true, new Writer())));
             else
-                futures.add(executorService.submit(lockUsingFairReentrantLock(new Reader())));
+                futures.add(executorService.submit(lockUsingReentrantLock(true, new Reader())));
         }
 
         waitForAllTasksToComplete();
 
         assertThat(missMatches.get(), is(0));
+        assertThat(count1, is(nCycles / readWriteFactor));
     }
 
+    @Test
+    public void withReadWriteLocking() {
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        for (int i=0; i < nCycles; i++) {
+            if (i % readWriteFactor == 0)
+                futures.add(executorService.submit(readWriteLock(false, false, new Writer())));
+            else
+                futures.add(executorService.submit(readWriteLock(false, true, new Reader())));
+        }
+
+        waitForAllTasksToComplete();
+
+        assertThat(missMatches.get(), is(0));
+        assertThat(count1, is(nCycles / readWriteFactor));
+    }
+
+    @Test
+    public void withFairReadWriteLocking() {
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        for (int i=0; i < nCycles; i++) {
+            if (i % readWriteFactor == 0)
+                futures.add(executorService.submit(readWriteLock(true, false, new Writer())));
+            else
+                futures.add(executorService.submit(readWriteLock(true, true, new Reader())));
+        }
+
+        waitForAllTasksToComplete();
+
+        assertThat(missMatches.get(), is(0));
+        assertThat(count1, is(nCycles / readWriteFactor));
+    }
 
 
     private void waitForAllTasksToComplete() {
@@ -133,32 +172,53 @@ public class LockingTest {
         };
     }
 
-    private Runnable lockUsingReentrantLock(final Runnable runnable) {
+    private Runnable lockUsingReentrantLock(final boolean fair, final Runnable runnable) {
         return new Runnable() {
             @Override
             public void run() {
-                reentrantLock.lock();
+
+                getLock().lock();
                 try {
                     runnable.run();
                 }
                 finally {
-                    reentrantLock.unlock();
+                    getLock().unlock();
                 }
+            }
+
+            private ReentrantLock getLock() {
+                if (fair)
+                    return fairReentrantLock;
+                else
+                    return reentrantLock;
             }
         };
     }
 
-    private Runnable lockUsingFairReentrantLock(final Runnable runnable) {
+    private Runnable readWriteLock(final boolean fair, final boolean readLock, final Runnable runnable) {
         return new Runnable() {
             @Override
             public void run() {
-                fairReentrantLock.lock();
+                if (readLock)
+                    getLock().readLock().lock();
+                else
+                    getLock().writeLock().lock();
                 try {
                     runnable.run();
                 }
                 finally {
-                    fairReentrantLock.unlock();
+                    if (readLock)
+                        getLock().readLock().unlock();
+                    else
+                        getLock().writeLock().unlock();
                 }
+            }
+
+            private ReentrantReadWriteLock getLock() {
+                if (fair)
+                    return fairReadWriteLock;
+                else
+                    return readWriteLock;
             }
         };
     }
@@ -168,7 +228,7 @@ public class LockingTest {
         public void run() {
             count1 += 1;
             try {
-                Thread.sleep(0, 1000);
+                Thread.sleep(0, 100000);
             } catch (InterruptedException e) {
                 testLogger.log().debug("interrupted");
             }
@@ -179,6 +239,11 @@ public class LockingTest {
     private class Reader implements Runnable {
         @Override
         public void run() {
+            try {
+                Thread.sleep(0, 100000);
+            } catch (InterruptedException e) {
+                testLogger.log().debug("interrupted");
+            }
             if (!count1.equals(count2))
                 missMatches.incrementAndGet();
         }
