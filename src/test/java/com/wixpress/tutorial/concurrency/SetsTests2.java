@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.is;
  * @author yoav
  * @since 12/5/12
  */
-public class SetsTests {
+public class SetsTests2 {
 
     @Rule
     public TestLogger testLogger = new TestLogger();
@@ -226,9 +226,8 @@ public class SetsTests {
             public void run() {
                 long s = System.nanoTime();
                 try {
-                    int total = 0;
-                    for (Integer i: theSet)
-                        total += i;
+                    for (int i=0; i < 100; i++)
+                        theSet.contains(i);
                 }
                 catch (Exception e) {
                     readErrors.incrementAndGet();
