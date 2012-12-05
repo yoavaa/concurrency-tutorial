@@ -27,10 +27,20 @@ public class CountingTest {
     private int nThreads = 500;
     private int nCycles = 1000;
 
+    @Test
+    public void singleThread() {
+        long start = System.nanoTime();
+        for (int i=0; i < nThreads * nCycles; i++) {
+            counter++;
+        }
+        System.out.println(String.format("%,d nanoSec counter: %d - run single thread", System.nanoTime() - start, counter));
+        assertThat(counter, is(nThreads * nCycles));
+
+    }
+
     @DoesNotWork
     @Test
     public void run_100_threads() throws InterruptedException {
-        long start = System.nanoTime();
         List<Thread> threads = new ArrayList<>();
         for (int i=0; i < nThreads; i++) {
             Thread thread = new Thread(new Runnable() {
@@ -40,8 +50,11 @@ public class CountingTest {
                         counter++;
                 }
             });
-            thread.start();
             threads.add(thread);
+        }
+        long start = System.nanoTime();
+        for (Thread thread: threads) {
+            thread.start();
         }
 
         for (Thread t: threads)
@@ -53,7 +66,6 @@ public class CountingTest {
 
     @Test
     public void run_100_threads_with_lock() throws InterruptedException {
-        long start = System.nanoTime();
         List<Thread> threads = new ArrayList<>();
         for (int i=0; i < nThreads; i++) {
             Thread thread = new Thread(new Runnable() {
@@ -65,9 +77,11 @@ public class CountingTest {
                         }
                 }
             });
-            thread.start();
             threads.add(thread);
         }
+        long start = System.nanoTime();
+        for (Thread t: threads)
+            t.start();
 
         for (Thread t: threads)
             t.join();
@@ -79,7 +93,6 @@ public class CountingTest {
     @DoesNotWork
     @Test
     public void run_100_threads_with_volatile() throws InterruptedException {
-        long start = System.nanoTime();
         List<Thread> threads = new ArrayList<>();
         for (int i=0; i < nThreads; i++) {
             Thread thread = new Thread(new Runnable() {
@@ -89,10 +102,11 @@ public class CountingTest {
                         volatileCounter++;
                 }
             });
-            thread.start();
             threads.add(thread);
         }
-
+        long start = System.nanoTime();
+        for (Thread t: threads)
+            t.start();
         for (Thread t: threads)
             t.join();
 
@@ -102,7 +116,6 @@ public class CountingTest {
 
     @Test
     public void run_100_threads_with_atomic() throws InterruptedException {
-        long start = System.nanoTime();
         List<Thread> threads = new ArrayList<>();
         for (int i=0; i < nThreads; i++) {
             Thread thread = new Thread(new Runnable() {
@@ -112,9 +125,11 @@ public class CountingTest {
                         atomicCounter.incrementAndGet();
                 }
             });
-            thread.start();
             threads.add(thread);
         }
+        long start = System.nanoTime();
+        for (Thread t: threads)
+            t.start();
 
         for (Thread t: threads)
             t.join();
@@ -126,7 +141,6 @@ public class CountingTest {
     @Test
     public void run_100_threads_with_single_worker() throws InterruptedException {
         final ExecutorService executorService = Executors.newFixedThreadPool(1);
-        long start = System.nanoTime();
         List<Thread> threads = new ArrayList<>();
         for (int i=0; i < nThreads; i++) {
             Thread thread = new Thread(new Runnable() {
@@ -141,9 +155,11 @@ public class CountingTest {
                         });
                 }
             });
-            thread.start();
             threads.add(thread);
         }
+        long start = System.nanoTime();
+        for (Thread t: threads)
+            t.start();
 
         for (Thread t: threads)
             t.join();
@@ -156,7 +172,7 @@ public class CountingTest {
                 return counter;
             }
         }, 10, 1000), eventually(is(nThreads * nCycles)));
-        System.out.println(String.format("%,d nanoSec counter: %d - run %d threads with actor", System.nanoTime() - start, counter, nThreads));
+        System.out.println(String.format("%,d nanoSec counter: %d - run %d threads with single worker", System.nanoTime() - start, counter, nThreads));
 
         executorService.shutdown();
     }
@@ -165,7 +181,6 @@ public class CountingTest {
     @Test
     public void run_100_threads_with_multiple_workers() throws InterruptedException {
         final ExecutorService executorService = Executors.newFixedThreadPool(10);
-        long start = System.nanoTime();
         List<Thread> threads = new ArrayList<>();
         for (int i=0; i < nThreads; i++) {
             Thread thread = new Thread(new Runnable() {
@@ -180,9 +195,11 @@ public class CountingTest {
                         });
                 }
             });
-            thread.start();
             threads.add(thread);
         }
+        long start = System.nanoTime();
+        for (Thread t: threads)
+            t.start();
 
         for (Thread t: threads)
             t.join();
@@ -195,7 +212,7 @@ public class CountingTest {
                 return counter;
             }
         }, 10, 1000), eventually(is(nThreads * nCycles)));
-        System.out.println(String.format("%,d nanoSec counter: %d - run %d threads with actor", System.nanoTime() - start, counter, nThreads));
+        System.out.println(String.format("%,d nanoSec counter: %d - run %d threads with multi workers", System.nanoTime() - start, counter, nThreads));
 
         executorService.shutdown();
     }

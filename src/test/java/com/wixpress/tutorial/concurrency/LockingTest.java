@@ -75,7 +75,7 @@ public class LockingTest {
     }
 
     @Test
-    public void withLocking() {
+    public void withSynchronized() {
         int index = 0;
         ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
         for (int i=0; i < nCycles; i++) {
