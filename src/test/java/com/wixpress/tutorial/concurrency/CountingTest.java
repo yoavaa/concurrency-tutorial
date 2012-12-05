@@ -1,5 +1,6 @@
 package com.wixpress.tutorial.concurrency;
 
+import com.wixpress.tutorial.DoesNotWork;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ public class CountingTest {
     private int nThreads = 500;
     private int nCycles = 1000;
 
+    @DoesNotWork
     @Test
     public void run_100_threads() throws InterruptedException {
         long start = System.nanoTime();
@@ -74,6 +76,7 @@ public class CountingTest {
         assertThat(counter, is(nThreads * nCycles));
     }
 
+    @DoesNotWork
     @Test
     public void run_100_threads_with_volatile() throws InterruptedException {
         long start = System.nanoTime();
@@ -158,6 +161,7 @@ public class CountingTest {
         executorService.shutdown();
     }
 
+    @DoesNotWork
     @Test
     public void run_100_threads_with_multiple_actor() throws InterruptedException {
         final ExecutorService executorService = Executors.newFixedThreadPool(10);
