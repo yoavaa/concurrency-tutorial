@@ -17,8 +17,6 @@ public class ThreadTest {
     public TestLogger testLogger = new TestLogger();
 
     private int count = 0;
-    private final Object lock = new Object();
-    private final Object lock2 = new Object();
 
     @Test
     public void runSingleThread() throws InterruptedException {

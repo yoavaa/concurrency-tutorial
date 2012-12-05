@@ -163,7 +163,7 @@ public class CountingTest {
 
     @DoesNotWork
     @Test
-    public void run_100_threads_with_multiple_actor() throws InterruptedException {
+    public void run_100_threads_with_multiple_workers() throws InterruptedException {
         final ExecutorService executorService = Executors.newFixedThreadPool(10);
         long start = System.nanoTime();
         List<Thread> threads = new ArrayList<>();
