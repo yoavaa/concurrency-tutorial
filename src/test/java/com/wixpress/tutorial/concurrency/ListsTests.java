@@ -22,19 +22,18 @@ public class ListsTests {
     public TestLogger testLogger = new TestLogger();
 
     private ExecutorService executorService = Executors.newFixedThreadPool(10);
-    private int nThreads = 1000;
+    private int nTasks = 1000;
     private int readWriteFactor = 4;
     private AtomicInteger errors = new AtomicInteger(0);
     private List<Future<?>> futures = new ArrayList<>();
     private final Object lock = new Object();
-
 
     @DoesNotWork
     @Test
     public void arrayList() {
         List<Integer> theList = new ArrayList<>();
         long start = System.currentTimeMillis();
-        for (int i=0; i < nThreads; i++) {
+        for (int i=0; i < nTasks; i++) {
             if (i % readWriteFactor == 0)
                 futures.add(executorService.submit(producer(theList)));
             else
@@ -51,7 +50,7 @@ public class ListsTests {
     public void linkedList() {
         List<Integer> theList = new LinkedList<>();
         long start = System.currentTimeMillis();
-        for (int i=0; i < nThreads; i++) {
+        for (int i=0; i < nTasks; i++) {
             if (i % readWriteFactor == 0)
                 futures.add(executorService.submit(producer(theList)));
             else
@@ -68,7 +67,7 @@ public class ListsTests {
     public void vector() {
         List<Integer> theList = new Vector<>();
         long start = System.currentTimeMillis();
-        for (int i=0; i < nThreads; i++) {
+        for (int i=0; i < nTasks; i++) {
             if (i % readWriteFactor == 0)
                 futures.add(executorService.submit(producer(theList)));
             else
@@ -84,7 +83,7 @@ public class ListsTests {
     public void copyOnWriteList() {
         List<Integer> theList = new CopyOnWriteArrayList<>();
         long start = System.currentTimeMillis();
-        for (int i=0; i < nThreads; i++) {
+        for (int i=0; i < nTasks; i++) {
             if (i % readWriteFactor == 0)
                 futures.add(executorService.submit(producer(theList)));
             else
@@ -101,7 +100,7 @@ public class ListsTests {
     public void synchronizedArrayList() {
         List<Integer> theList = Collections.synchronizedList(new ArrayList<Integer>());
         long start = System.currentTimeMillis();
-        for (int i=0; i < nThreads; i++) {
+        for (int i=0; i < nTasks; i++) {
             if (i % readWriteFactor == 0)
                 futures.add(executorService.submit(producer(theList)));
             else
@@ -115,9 +114,9 @@ public class ListsTests {
 
     @Test
     public void synchronizedOnAllOperationsArrayList() {
-        List<Integer> theList = Collections.synchronizedList(new ArrayList<Integer>());
+        List<Integer> theList = new ArrayList<>();
         long start = System.currentTimeMillis();
-        for (int i=0; i < nThreads; i++) {
+        for (int i=0; i < nTasks; i++) {
             if (i % readWriteFactor == 0)
                 futures.add(executorService.submit(lockUsingSynchronized(producer(theList))));
             else
