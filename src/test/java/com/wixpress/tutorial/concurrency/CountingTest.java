@@ -124,7 +124,7 @@ public class CountingTest {
     }
 
     @Test
-    public void run_100_threads_with_actor() throws InterruptedException {
+    public void run_100_threads_with_single_worker() throws InterruptedException {
         final ExecutorService executorService = Executors.newFixedThreadPool(1);
         long start = System.nanoTime();
         List<Thread> threads = new ArrayList<>();

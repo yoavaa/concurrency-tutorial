@@ -7,6 +7,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,12 +23,14 @@ import static org.junit.Assert.assertThat;
  * @author yoav
  * @since 12/5/12
  */
-public class BasicExecutorTests {
+public class CallableWithTimeoutExecutorTests {
 
     private AtomicInteger count = new AtomicInteger(0);
     private final int nCycles = 1000;
     private int concurrentWorkingTasks = 0;
     private int maxConcurrentWorkingTasks = 0;
+
+    private List<Future<Integer>> futures = new ArrayList<>();
 
     @Rule
     public TestLogger testLogger = new TestLogger();
@@ -33,10 +39,17 @@ public class BasicExecutorTests {
      * this scenario has 10 worker threads and unlimited queue
      */
     @Test
-    public void fixedExecutor() {
+    public void fixedExecutor() throws ExecutionException, InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         for (int i=0; i < nCycles; i++)
-            executorService.submit(task());
+            futures.add(executorService.submit(task()));
+
+        for (Future<Integer> future: reversed(futures))
+            try {
+                future.get(1, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                testLogger.log().debug("timeout with exception: {}", e.getClass());
+            }
 
         assertThat(overTime(new AsyncMatchers.Sampler<Integer>() {
             @Override
@@ -54,10 +67,17 @@ public class BasicExecutorTests {
      * the queue is a fake - jobs start as soon as a new thread can be created
      */
     @Test
-    public void cachedExecutor() {
+    public void cachedExecutor() throws ExecutionException, InterruptedException {
         ExecutorService executorService = Executors.newCachedThreadPool();
         for (int i=0; i < nCycles; i++)
-            executorService.submit(task());
+            futures.add(executorService.submit(task()));
+
+        for (Future<Integer> future: reversed(futures))
+            try {
+                future.get(1, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                testLogger.log().debug("timeout with exception: {}", e.getClass());
+            }
 
         assertThat(overTime(new AsyncMatchers.Sampler<Integer>() {
             @Override
@@ -76,42 +96,23 @@ public class BasicExecutorTests {
      */
     @DoesNotWork
     @Test
-    public void fixedWithLimitedQueue() {
+    public void fixedWithLimitedQueue() throws ExecutionException, InterruptedException {
         ExecutorService executorService = new ThreadPoolExecutor(10, 10,
                                               0L, TimeUnit.MILLISECONDS,
                                               new LinkedBlockingQueue<Runnable>(50));
         for (int i=0; i < nCycles; i++)
             try {
-                executorService.submit(task());
+                futures.add(executorService.submit(task()));
             }
             catch (RejectedExecutionException e) {
                 testLogger.log().debug("rejected task: {}", e.getClass());
             }
 
-        assertThat(overTime(new AsyncMatchers.Sampler<Integer>() {
-            @Override
-            public Integer Sample() {
-                return count.get();
-            }
-        }, 10, 1000), eventually(is(nCycles)));
-
-        executorService.shutdown();
-        logMaxConcurrentWorkingTasks();
-    }
-
-    /**
-     * this scenario has 10 worker threads and 50 places in the queue for tasks.
-     * task submission may fail is the queue is full
-     */
-    @Test
-    public void scheduledExecutor() {
-        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(10);
-        for (int i=0; i < nCycles; i++)
+        for (Future<Integer> future: reversed(futures))
             try {
-                executorService.schedule(task(), 1, TimeUnit.MILLISECONDS);
-            }
-            catch (RejectedExecutionException e) {
-                testLogger.log().debug("rejected task: {}", e.getClass());
+                future.get(1, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                testLogger.log().debug("timeout with exception: {}", e.getClass());
             }
 
         assertThat(overTime(new AsyncMatchers.Sampler<Integer>() {
@@ -125,21 +126,22 @@ public class BasicExecutorTests {
         logMaxConcurrentWorkingTasks();
     }
 
-    private Runnable task() {
-        return new Runnable() {
+    private Callable<Integer> task() {
+        return new Callable<Integer>() {
             @Override
-            public void run() {
+            public Integer call() {
                 taskStarts();
                 spendSomeTime();
-                count.incrementAndGet();
+                int cnt = count.incrementAndGet();
                 taskCompletes();
+                return cnt;
             }
         };
     }
 
     private void spendSomeTime() {
         try {
-            Thread.sleep(1);
+            Thread.sleep(10);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -160,5 +162,27 @@ public class BasicExecutorTests {
 
     private void logMaxConcurrentWorkingTasks() {
         testLogger.log().debug("max concurrent working tasks {}", maxConcurrentWorkingTasks);
+    }
+
+    public static class Reversed<T> implements Iterable<T> {
+        private final List<T> original;
+
+        public Reversed(List<T> original) {
+            this.original = original;
+        }
+
+        public Iterator<T> iterator() {
+            final ListIterator<T> i = original.listIterator(original.size());
+
+            return new Iterator<T>() {
+                public boolean hasNext() { return i.hasPrevious(); }
+                public T next() { return i.previous(); }
+                public void remove() { i.remove(); }
+            };
+        }
+
+    }
+    public static <T> Reversed<T> reversed(List<T> original) {
+        return new Reversed<T>(original);
     }
 }
