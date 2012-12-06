@@ -4,6 +4,7 @@ import com.wixpress.tutorial.DoesNotWork;
 import com.wixpress.tutorial.HasDeadLock;
 import com.wixpress.tutorial.TestLogger;
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -29,7 +30,7 @@ public class SetsTests2 {
     public TestName name= new TestName();
 
     private ExecutorService executorService = Executors.newFixedThreadPool(100);
-    private int nTasks = 10000;
+    private int nTasks = 100000;
     private int readWriteFactor = 4;
     private AtomicInteger readErrors = new AtomicInteger(0);
     private AtomicInteger writeErrors = new AtomicInteger(0);
@@ -50,6 +51,7 @@ public class SetsTests2 {
         }
     }
 
+    @Ignore
     @HasDeadLock
     @DoesNotWork
     @Test

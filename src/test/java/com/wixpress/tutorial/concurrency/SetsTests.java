@@ -29,7 +29,7 @@ public class SetsTests {
     public TestName name= new TestName();
 
     private ExecutorService executorService = Executors.newFixedThreadPool(100);
-    private int nTasks = 10000;
+    private int nTasks = 100000;
     private int readWriteFactor = 4;
     private AtomicInteger readErrors = new AtomicInteger(0);
     private AtomicInteger writeErrors = new AtomicInteger(0);

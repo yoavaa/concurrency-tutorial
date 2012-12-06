@@ -212,6 +212,7 @@ public class CountingTest {
                 return counter;
             }
         }, 10, 1000), eventually(is(nThreads * nCycles)));
+
         System.out.println(String.format("%,d nanoSec counter: %d - run %d threads with multi workers", System.nanoTime() - start, counter, nThreads));
 
         executorService.shutdown();

@@ -2,12 +2,12 @@ package com.wixpress.tutorial.concurrency;
 
 import com.wixpress.tutorial.DoesNotWork;
 import com.wixpress.tutorial.HasDeadLock;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -88,6 +88,7 @@ public class WaitTest {
         assertThat(count, is(1));
     }
 
+    @Ignore
     @HasDeadLock
     @Test
     public void runAndWaitWithRandomDeadlock() throws InterruptedException {
@@ -96,6 +97,7 @@ public class WaitTest {
             public void run() {
                 log.debug("thread - started");
                 try {
+                    Thread.sleep(10);
                     synchronized (lock) {
                         log.debug("thread - waiting");
                         lock.wait();
