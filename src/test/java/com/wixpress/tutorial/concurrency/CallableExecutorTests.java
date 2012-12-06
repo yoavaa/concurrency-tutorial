@@ -45,12 +45,7 @@ public class CallableExecutorTests {
         for (Future<Integer> future: futures)
             future.get();
 
-        assertThat(overTime(new AsyncMatchers.Sampler<Integer>() {
-            @Override
-            public Integer Sample() {
-                return count.get();
-            }
-        }, 10, 1000), eventually(is(nCycles)));
+        assertThat(count.get(), is(nCycles));
 
         executorService.shutdown();
         logMaxConcurrentWorkingTasks();
@@ -69,12 +64,7 @@ public class CallableExecutorTests {
         for (Future<Integer> future: futures)
             future.get();
 
-        assertThat(overTime(new AsyncMatchers.Sampler<Integer>() {
-            @Override
-            public Integer Sample() {
-                return count.get();
-            }
-        }, 10, 1000), eventually(is(nCycles)));
+        assertThat(count.get(), is(nCycles));
 
         executorService.shutdown();
         logMaxConcurrentWorkingTasks();
@@ -101,12 +91,7 @@ public class CallableExecutorTests {
         for (Future<Integer> future: futures)
             future.get();
 
-        assertThat(overTime(new AsyncMatchers.Sampler<Integer>() {
-            @Override
-            public Integer Sample() {
-                return count.get();
-            }
-        }, 10, 1000), eventually(is(nCycles)));
+        assertThat(count.get(), is(nCycles));
 
         executorService.shutdown();
         logMaxConcurrentWorkingTasks();
